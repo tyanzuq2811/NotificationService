@@ -1,11 +1,11 @@
-# He Thong Thong Bao Da Kenh Doanh Nghiep (Multi-Channel Notification Platform)
-## Kien Truc Microservices Huong Su Kien (Event-Driven) & Phan Tach Lenh - Truy Van (CQRS)
+# Hệ Thống Thông Báo Đa Kênh Doanh Nghiệp (Multi-Channel Notification Platform)
+## Kiến Trúc Microservices Hướng Sự Kiện (Event-Driven) & Phân Tách Lệnh - Truy Vấn (CQRS)
 
-He thong thong bao phan tan da kenh quy mo doanh nghiep duoc thiet ke theo tieu chuan ky thuat hien dai, ket hop CQRS (Command Query Responsibility Segregation), Event-Driven Architecture (EDA), Transactional Outbox Pattern va co che chong chiu loi (Fault-Tolerance) voi Apache Kafka, SQL Server, MongoDB va .NET 8.
+Hệ thống thông báo phân tán đa kênh quy mô doanh nghiệp được thiết kế theo tiêu chuẩn kỹ thuật hiện đại, kết hợp CQRS (Command Query Responsibility Segregation), Event-Driven Architecture (EDA), Transactional Outbox Pattern và cơ chế chống chịu lỗi (Fault-Tolerance) với Apache Kafka, SQL Server, MongoDB và .NET 8.
 
 ---
 
-## 1. Kien Truc Tong Quan
+## 1. Kiến Trúc Tổng Quan
 
 ```
 [ Client / Business Services / Webhook ]
@@ -13,16 +13,16 @@ He thong thong bao phan tan da kenh quy mo doanh nghiep duoc thiet ke theo tieu 
                    v (HTTP POST /commands)
 +--------------------------------------------------------+
 |             COMMAND SERVICE (Port 5001)                |
-|  - Tiep nhan lenh thong bao, kiem tra IdempotencyKey   |
-|  - Ghi Transactional Outbox vao SQL Server (Atomic)    |
+|  - Tiếp nhận lệnh thông báo, kiểm tra IdempotencyKey   |
+|  - Ghi Transactional Outbox vào SQL Server (Atomic)    |
 |  - Background Outbox Relay Worker (UPDLOCK, READPAST)  |
 +--------------------------+-----------------------------+
-                           | Phat tan su kien (At-Least-Once)
+                           | Phát tán sự kiện (At-Least-Once)
                            v
 +--------------------------------------------------------+
 |           APACHE KAFKA CLUSTER (KRaft Mode)            |
-|  - Topic: notification-events-critical (Uu tien cao)   |
-|  - Topic: notification-events (Tieu chuan)             |
+|  - Topic: notification-events-critical (Ưu tiên cao)   |
+|  - Topic: notification-events (Tiêu chuẩn)             |
 |  - Topic: inapp-push-events (Realtime Push)            |
 |  - Topic: notification-dlq (Dead Letter Queue)         |
 +--------------------------+-----------------------------+
@@ -30,135 +30,135 @@ He thong thong bao phan tan da kenh quy mo doanh nghiep duoc thiet ke theo tieu 
                v                          v
 +------------------------------+ +------------------------------+
 |  CONSUMER SERVICE (Worker)   | |  QUERY SERVICE (Port 5002)   |
-|  - Strategy Multi-Channel:   | |  - Dong bo Read Model        |
+|  - Strategy Multi-Channel:   | |  - Đồng bộ Read Model        |
 |    + Email (Google SMTP)     | |  - SignalR WebSocket Hub     |
-|    + Telegram Bot API        | |  - Truy van toc do cao tu    |
+|    + Telegram Bot API        | |  - Truy vấn tốc độ cao từ    |
 |    + Web Push (W3C VAPID)    | |    MongoDB                   |
 |    + Discord / Zalo Webhook  | +--------------+---------------+
 |  - Polly Fault-Tolerance:    |                |
 |    + Exponential Retry       |                | WebSocket / REST
 |    + Circuit Breaker         |                v
 |    + Channel Fallback        | +------------------------------+
-|  - Cap nhat Read Model Mongo | |  FRONTEND CONSOLE (Port 5173)|
+|  - Cập nhật Read Model Mongo | |  FRONTEND CONSOLE (Port 5173)|
 +------------------------------+ |  Vue 3 + Vite + TailwindCSS  |
                                  +------------------------------+
 ```
 
 ---
 
-## 2. Dac Diem Ky Thuat Cot Loi
+## 2. Đặc Điểm Kỹ Thuật Cốt Lõi
 
-1. **Phan Tach CQRS Triet De:**
-   - **Ghi (Write Stack):** Xu ly nghiep vu va ghi vao SQL Server thong qua mo hinh Transactional Outbox, dam bao tinh nhat quan cuoi cung (Eventual Consistency) ma khong can giao dich phan tan (2PC).
-   - **Doc (Read Stack):** Su dung MongoDB duoc toi uu hoa cho truy van doc phi chuan hoa (denormalized), phuc vu hien thi hop thu, truy vet nhat ky va thong ke thoi gian thuc.
+1. **Phân Tách CQRS Triệt Để:**
+   - **Ghi (Write Stack):** Xử lý nghiệp vụ và ghi vào SQL Server thông qua mô hình Transactional Outbox, đảm bảo tính nhất quán cuối cùng (Eventual Consistency) mà không cần giao dịch phân tán (2PC).
+   - **Đọc (Read Stack):** Sử dụng MongoDB được tối ưu hóa cho truy vấn đọc phi chuẩn hóa (denormalized), phục vụ hiển thị hộp thư, truy vết nhật ký và thống kê thời gian thực.
 
-2. **Mo Hinh Transactional Outbox:**
-   - Su dung co che khoa dong `UPDLOCK, READPAST` tren SQL Server giup cac Outbox Relay Worker hoat dong song song ma khong gay tranh chap (race condition) hay trung lap thong diep.
+2. **Mô Hình Transactional Outbox:**
+   - Sử dụng cơ chế khóa dòng `UPDLOCK, READPAST` trên SQL Server giúp các Outbox Relay Worker hoạt động song song mà không gây tranh chấp (race condition) hay trùng lặp thông điệp.
 
-3. **Chien Luoc Phat Tan Da Kenh (Strategy Pattern):**
-   - **Email:** Giao thuc SMTP ket hop xac thuc TLS/STARTTLS.
-   - **Telegram:** Telegram Bot API gui tin nhan truc tiep theo Chat ID.
-   - **Web Push:** Chuan W3C Push API tich hop cap khoa VAPID cho thong bao he thong.
-   - **In-App:** SignalR WebSocket Hub truyen tin nhan truc tiep toi trinh duyet nguoi dung.
-   - **Webhook:** Phat su kien toi cac ben thu ba (Discord, Zalo ZNS).
+3. **Chiến Lược Phát Tán Đa Kênh (Strategy Pattern):**
+   - **Email:** Giao thức SMTP kết hợp xác thực TLS/STARTTLS.
+   - **Telegram:** Telegram Bot API gửi tin nhắn trực tiếp theo Chat ID.
+   - **Web Push:** Chuẩn W3C Push API tích hợp cặp khóa VAPID cho thông báo hệ thống.
+   - **In-App:** SignalR WebSocket Hub truyền tin nhắn trực tiếp tới trình duyệt người dùng.
+   - **Webhook:** Phát sự kiện tới các bên thứ ba (Discord, Zalo ZNS).
 
-4. **Co Che Chong Chiu Loi & Tu Phuc Hoi (Resilience):**
-   - **Polly Retry:** Thu lai tu dong voi Exponential Backoff khi gap loi mang tam thoi.
-   - **Circuit Breaker:** Tu dong ngat mach (Open State) khi ty le loi vuot nguong, bao ve he thong khoi cascading failure.
-   - **Channel Fallback:** Tu dong dieu huong sang kenh du phong khi kenh chinh bi gian doan.
-   - **Dead Letter Queue (DLQ):** Luu tru cac thong diep loi khong the phuc hoi de quan tri vien phan tich va phat lai (Replay).
+4. **Cơ Chế Chống Chịu Lỗi & Tự Phục Hồi (Resilience):**
+   - **Polly Retry:** Thử lại tự động với Exponential Backoff khi gặp lỗi mạng tạm thời.
+   - **Circuit Breaker:** Tự động ngắt mạch (Open State) khi tỷ lệ lỗi vượt ngưỡng, bảo vệ hệ thống khỏi sự cố sụp đổ dây chuyền (cascading failure).
+   - **Channel Fallback:** Tự động điều hướng sang kênh dự phòng khi kênh chính bị gián đoạn.
+   - **Dead Letter Queue (DLQ):** Lưu trữ các thông điệp lỗi không thể phục hồi để quản trị viên phân tích và phát lại (Replay).
 
-5. **Kiem Soat Tai & Gioi Han Thoi Gian (Rate Limiting & TTL):**
-   - Ap dung thuat toan Token Bucket de kiem soat luu luong phat tan.
-   - Tu dong huy cac su kien het han (TTL) doi voi ma OTP va thong bao khan cap.
+5. **Kiểm Soát Tải & Giới Hạn Thời Gian (Rate Limiting & TTL):**
+   - Áp dụng thuật toán Token Bucket để kiểm soát lưu lượng phát tán.
+   - Tự động hủy các sự kiện hết hạn (TTL) đối với mã OTP và thông báo khẩn cấp.
 
 ---
 
-## 3. Cau Truc Thu Muc Du An
+## 3. Cấu Trúc Thư Mục Dự Án
 
 ```
 NotificationService_CQRS/
 ├── backend/
-│   ├── Common/              # Thu vien dung chung (DTOs, Events, EnvLoader, Enums)
-│   ├── CommandService/      # API tiep nhan Command & Outbox Relay Worker
-│   ├── ConsumerService/     # Worker Kafka xu ly phat tan da kenh & Polly Resilience
-│   └── QueryService/        # API truy van MongoDB Read Model & SignalR Hub
-├── frontend/                # Giao dien dieu khien (Vue 3, Vite, Tailwind CSS, Chart.js)
-├── docker-compose.yml       # Cum ha tang Docker (Kafka KRaft, SQL Server, MongoDB)
-├── run_all.ps1              # Kich ban PowerShell khoi chay toan bo he thong
-├── .env.example             # Tep mau cau hinh bien moi truong
-└── .gitignore               # Loai bo cac tep nhay cam va build artifacts
+│   ├── Common/              # Thư viện dùng chung (DTOs, Events, EnvLoader, Enums)
+│   ├── CommandService/      # API tiếp nhận Command & Outbox Relay Worker
+│   ├── ConsumerService/     # Worker Kafka xử lý phát tán đa kênh & Polly Resilience
+│   └── QueryService/        # API truy vấn MongoDB Read Model & SignalR Hub
+├── frontend/                # Giao diện điều khiển (Vue 3, Vite, Tailwind CSS, Chart.js)
+├── docker-compose.yml       # Cụm hạ tầng Docker (Kafka KRaft, SQL Server, MongoDB)
+├── run_all.ps1              # Kịch bản PowerShell khởi chạy toàn bộ hệ thống
+├── .env.example             # Tệp mẫu cấu hình biến môi trường
+└── .gitignore               # Loại bỏ các tệp nhạy cảm và build artifacts
 ```
 
 ---
 
-## 4. Yeu Cau He Thong
+## 4. Yêu Cầu Hệ Thống
 
-- He dieu hanh: Windows 10/11, Linux hoac macOS
-- Docker Desktop (ho tro Docker Compose v2)
-- .NET 8.0 SDK tro len
-- Node.js phien ban 18 tro len va npm
+- Hệ điều hành: Windows 10/11, Linux hoặc macOS
+- Docker Desktop (hỗ trợ Docker Compose v2)
+- .NET 8.0 SDK trở lên
+- Node.js phiên bản 18 trở lên và npm
 
 ---
 
-## 5. Thiet Lap Cau Hinh & Bien Moi Truong
+## 5. Thiết Lập Cấu Hình & Biến Môi Trường
 
-Du an ap dung nguyen tac bao mat khong commit thong tin nhay cam (mat khau, token, connection string) len Git. Cac thong so duoc doc tu bien moi truong hoac tep `.env`.
+Dự án áp dụng nguyên tắc bảo mật không commit thông tin nhạy cảm (mật khẩu, token, connection string) lên Git. Các thông số được đọc từ biến môi trường hoặc tệp `.env`.
 
-1. Tao tep `.env` tu tep mau:
+1. Tạo tệp `.env` từ tệp mẫu:
    ```bash
    cp .env.example .env
    ```
 
-2. Cap nhat cac gia tri can thiet trong tep `.env`:
-   - `Channels__Email__SenderEmail`: Dia chi Gmail gui thu.
-   - `Channels__Email__Password`: Mat khau ung dung Google (App Password 16 ky tu).
-   - `Channels__Telegram__BotToken`: Token Bot Telegram tu BotFather.
-   - `VITE_VAPID_PUBLIC_KEY`: Khoa cong khai VAPID cho Web Push.
+2. Cập nhật các giá trị cần thiết trong tệp `.env`:
+   - `Channels__Email__SenderEmail`: Địa chỉ Gmail gửi thư.
+   - `Channels__Email__Password`: Mật khẩu ứng dụng Google (App Password 16 ký tự).
+   - `Channels__Telegram__BotToken`: Token Bot Telegram từ BotFather.
+   - `VITE_VAPID_PUBLIC_KEY`: Khóa công khai VAPID cho Web Push.
 
 ---
 
-## 6. Huong Dan Khoi Chay
+## 6. Hướng Dẫn Khởi Chạy
 
-### Cach 1: Khoi chay tu dong (Khuyen nghi tren Windows)
+### Cách 1: Khởi chạy tự động (Khuyến nghị trên Windows)
 
-Chay file kich ban duy nhat:
+Chạy file kịch bản duy nhất:
 ```powershell
 .\run_all.ps1
 ```
 
-Kich ban se tu dong:
-- Khoi dong cum Docker container (`kafka-kraft`, `sqlserver-db`, `mongodb-read`).
-- Nap bien moi truong tu `.env`.
-- Bien dich solution backend.
-- Khoi chay dong thoi CommandService (port 5001), QueryService (port 5002), ConsumerService va Frontend Console (port 5173).
+Kịch bản sẽ tự động:
+- Khởi động cụm Docker container (`kafka-kraft`, `sqlserver-db`, `mongodb-read`).
+- Nạp biến môi trường từ `.env`.
+- Biên dịch solution backend.
+- Khởi chạy đồng thời CommandService (port 5001), QueryService (port 5002), ConsumerService và Frontend Console (port 5173).
 
-### Cach 2: Khoi chay thu cong tung thanh phan
+### Cách 2: Khởi chạy thủ công từng thành phần
 
-1. Khoi dong ha tang Docker:
+1. Khởi động hạ tầng Docker:
    ```bash
    docker compose up -d
    ```
 
-2. Khoi chay Command Service:
+2. Khởi chạy Command Service:
    ```bash
    cd backend/CommandService
    dotnet run
    ```
 
-3. Khoi chay Consumer Service:
+3. Khởi chạy Consumer Service:
    ```bash
    cd backend/ConsumerService
    dotnet run
    ```
 
-4. Khoi chay Query Service:
+4. Khởi chạy Query Service:
    ```bash
    cd backend/QueryService
    dotnet run
    ```
 
-5. Khoi chay Frontend Console:
+5. Khởi chạy Frontend Console:
    ```bash
    cd frontend
    npm install
@@ -167,7 +167,7 @@ Kich ban se tu dong:
 
 ---
 
-## 7. Dia Chi Cac Dich Vu
+## 7. Địa Chỉ Các Dịch Vụ
 
 - Command Service API (Swagger): `http://localhost:5001/swagger`
 - Query Service API (Swagger): `http://localhost:5002/swagger`
@@ -179,8 +179,8 @@ Kich ban se tu dong:
 
 ---
 
-## 8. Chinh Sach Bao Mat
+## 8. Chính Sách Bảo Mật
 
-- Tep `.env` va cac tep build (`bin/`, `obj/`, `node_modules/`) duoc loai tru hoan toan khoi Git thong qua `.gitignore`.
-- Lop `Common.EnvLoader` tu dong tim kiem tep `.env` o thu muc goc va nap vao runtime moi truong cua tien trinh.
-- Khi trien khai moi truong production (Kubernetes/Docker Swarm), cac bien moi truong duoc truyen truc tiep thong qua co che ConfigMap hoac Secret.
+- Tệp `.env` và các tệp build (`bin/`, `obj/`, `node_modules/`) được loại trừ hoàn toàn khỏi Git thông qua `.gitignore`.
+- Lớp `Common.EnvLoader` tự động tìm kiếm tệp `.env` ở thư mục gốc và nạp vào runtime môi trường của tiến trình.
+- Khi triển khai môi trường production (Kubernetes/Docker Swarm), các biến môi trường được truyền trực tiếp thông qua cơ chế ConfigMap hoặc Secret.

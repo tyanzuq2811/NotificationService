@@ -46,7 +46,7 @@ namespace ConsumerService
 
             using var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
 
-            // Subscribing to Standard, Critical Priority, and System Config Topics
+            // Đăng ký nhận thông điệp từ các Topic Tiêu chuẩn, Ưu tiên khẩn cấp và Cấu hình hệ thống
             var subscribedTopics = new[]
             {
                 _topic,
@@ -81,7 +81,7 @@ namespace ConsumerService
                     _logger.LogInformation("Received Kafka event on topic {Topic}, Partition {Partition}, Offset {Offset}",
                         consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
 
-                    // Poison Pill Protection: Validate and Parse JSON
+                    // Cơ chế phòng chống Poison Pill: Xác thực và phân tích cú pháp JSON an toàn
                     string? eventType = null;
                     string? payloadJson = null;
 

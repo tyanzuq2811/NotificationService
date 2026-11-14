@@ -36,10 +36,10 @@ namespace ConsumerService.Services
         private readonly IProducer<string, string> _dlqProducer;
         private const string TEMPLATES_CACHE_KEY = "ALL_TEMPLATES";
 
-        // Enterprise Resilience 2.1: Polly Circuit Breaker & Retry per channel
+        // Chống chịu lỗi Enterprise 2.1: Polly Circuit Breaker và Retry theo từng kênh
         private readonly Dictionary<ChannelType, IAsyncPolicy> _resiliencePolicies = new();
 
-        // Enterprise Resilience 2.3: Token Bucket Rate Limiting per channel
+        // Chống chịu lỗi Enterprise 2.3: Giới hạn lưu lượng Token Bucket Rate Limiter theo từng kênh
         private readonly Dictionary<ChannelType, TokenBucketRateLimiter> _channelRateLimiters = new();
 
         public NotificationDispatcher(
@@ -68,13 +68,13 @@ namespace ConsumerService.Services
             };
             _dlqProducer = new ProducerBuilder<string, string>(producerConfig).Build();
 
-            // Initialize Resilience Policies (Circuit Breaker + Exponential Backoff Retry)
+            // Khởi tạo các chính sách chống chịu lỗi (Circuit Breaker + Exponential Backoff Retry)
             InitializeResiliencePolicies();
 
-            // Initialize Token Bucket Rate Limiters
+            // Khởi tạo các bộ điều phối tốc độ Token Bucket Rate Limiter
             InitializeRateLimiters();
 
-            // Ensure MongoDB indexes
+            // Đảm bảo khởi tạo các chỉ mục (Indexes) trên MongoDB
             try
             {
                 var indexUserCreated = Builders<NotificationDocument>.IndexKeys
@@ -98,7 +98,7 @@ namespace ConsumerService.Services
             var channels = (ChannelType[])Enum.GetValues(typeof(ChannelType));
             foreach (var ch in channels)
             {
-                // Circuit Breaker: Trip circuit after 2 failures, break for 30s
+                // Circuit Breaker: Tự động ngắt mạch sau 2 lần lỗi liên tiếp, giữ mạch mở trong 30 giây
                 var circuitBreaker = Policy
                     .Handle<Exception>()
                     .CircuitBreakerAsync(
@@ -118,7 +118,7 @@ namespace ConsumerService.Services
                             _logger.LogInformation("[Circuit Breaker: HALF-OPEN] Kênh {Channel} thăm dò luồng gửi mới...", ch);
                         });
 
-                // Exponential Backoff Retry: 3 attempts (1s, 2s, 4s)
+                // Exponential Backoff Retry: Tự động thử lại 3 lần với độ trễ tăng theo hàm mũ (1s, 2s, 4s)
                 var retryPolicy = Policy
                     .Handle<Exception>()
                     .WaitAndRetryAsync(
@@ -130,7 +130,7 @@ namespace ConsumerService.Services
                                 retryCount, ch, exception.Message, timeSpan.TotalSeconds);
                         });
 
-                // Wrap Retry around Circuit Breaker
+                // Bọc chính sách Retry ra ngoài Circuit Breaker
                 _resiliencePolicies[ch] = Policy.WrapAsync(retryPolicy, circuitBreaker);
             }
         }
@@ -254,11 +254,11 @@ namespace ConsumerService.Services
             _logger.LogInformation("Processing NotificationRequestedEvent for NotificationId: {Id}, EventCode: {Code}, Priority: {Priority}",
                 payload.NotificationId, payload.EventCode, payload.Priority);
 
-            // 1. Fetch templates from Distributed Memory Cache
+            // 1. Lấy mẫu thông báo (Templates) từ bộ nhớ đệm MemoryCache
             var allTemplates = await GetCachedTemplatesAsync(ct);
             var templates = allTemplates.Where(t => t.EventCode == payload.EventCode).ToList();
 
-            // 2. Check Quiet Hours (Do Not Disturb)
+            // 2. Kiểm tra khung giờ yên lặng của người dùng (Quiet Hours / Do Not Disturb)
             try
             {
                 using var conn = new SqlConnection(_sqlConnStr);
@@ -300,7 +300,7 @@ namespace ConsumerService.Services
                 _logger.LogWarning(ex, "Could not check user quiet hours. Continuing with standard channels.");
             }
 
-            // 3. Compute main Title & Content for MongoDB Read Model
+            // 3. Kết xuất Tiêu đề và Nội dung chính cho Read Model MongoDB
             var defaultTemplate = templates.FirstOrDefault(t => t.Channel == ChannelType.IN_APP.ToString()) 
                                ?? templates.FirstOrDefault();
 
@@ -312,7 +312,7 @@ namespace ConsumerService.Services
                 ? RenderTemplate(defaultTemplate.BodyTemplate, payload.Parameters) 
                 : $"Bạn có thông báo mới từ sự kiện {payload.EventCode}.";
 
-            // 4. Trace Log Step 3: Consumer Strategy Dispatch started
+            // 4. Nhật ký truy vết Bước 3: Bắt đầu phân phối qua các chiến lược kênh
             payload.TraceLogs ??= new List<TraceLogItem>();
             var step3Duration = (long)(DateTime.UtcNow - dispatchStart).TotalMilliseconds;
             if (step3Duration < 1) step3Duration = 1;
@@ -324,7 +324,7 @@ namespace ConsumerService.Services
                 DurationMs = step3Duration
             });
 
-            // 5. Enterprise Resilience 2.4: Message TTL Check (ExpiresAt & Chaos Simulation)
+            // 5. Chống chịu lỗi Enterprise 2.4: Kiểm tra thời gian sống TTL của thông điệp (ExpiresAt)
             bool isExpired = (payload.ExpiresAt.HasValue && DateTime.UtcNow > payload.ExpiresAt.Value) || payload.SimulateExpiredTtl;
             if (isExpired)
             {
@@ -366,7 +366,7 @@ namespace ConsumerService.Services
                 return;
             }
 
-            // 6. Insert initial Document with PENDING status to prevent Lost Update race conditions
+            // 6. Khởi tạo bản ghi MongoDB ban đầu với trạng thái PENDING để ngăn ngừa Lost Update
             var existing = await _collection.Find(x => x.NotificationId == payload.NotificationId).FirstOrDefaultAsync(ct);
             if (existing == null)
             {
@@ -397,7 +397,7 @@ namespace ConsumerService.Services
                 _logger.LogInformation("Initialized MongoDB Document for NotificationId: {Id} with 6-channel PENDING status", payload.NotificationId);
             }
 
-            // 7. Dispatch each enabled channel concurrently with Rate Limiting, Circuit Breaker & Fallback
+            // 7. Phát tán đồng thời tới các kênh đã bật kèm Rate Limiting, Circuit Breaker và Fallback
             var tasks = payload.EnabledChannels.Select(async channel =>
             {
                 var strategy = _strategyFactory.GetStrategy(channel);
@@ -407,7 +407,7 @@ namespace ConsumerService.Services
                     return;
                 }
 
-                // 7.0 Idempotency Check & Atomic Lock: Transition PENDING -> PROCESSING
+                // 7.0 Kiểm tra Idempotency và Khóa nguyên tử: Chuyển trạng thái PENDING -> PROCESSING
                 var channelFilter = Builders<NotificationDocument>.Filter.And(
                     Builders<NotificationDocument>.Filter.Eq(x => x.NotificationId, payload.NotificationId),
                     Builders<NotificationDocument>.Filter.ElemMatch(x => x.ChannelsStatus,
@@ -463,7 +463,7 @@ namespace ConsumerService.Services
 
                 try
                 {
-                    // Rate Limiter Enforcement
+                    // Thực thi kiểm soát lưu lượng qua Token Bucket Rate Limiter
                     if (_channelRateLimiters.TryGetValue(channel, out var limiter))
                     {
                         using var lease = limiter.AttemptAcquire(1);
@@ -474,7 +474,7 @@ namespace ConsumerService.Services
                         }
                     }
 
-                    // Execute with Polly Policy Wrap (Retry + Circuit Breaker)
+                    // Thực thi phát tán thông qua chuỗi chính sách Polly (Retry + Circuit Breaker)
                     var policy = _resiliencePolicies.TryGetValue(channel, out var p) ? p : Policy.NoOpAsync();
                     result = await policy.ExecuteAsync(async () =>
                     {
@@ -519,7 +519,7 @@ namespace ConsumerService.Services
                     await PushToDlqAsync(payload, channel, recipient, result.ErrorMessage, ct);
                 }
 
-                // Enterprise Resilience 2.2: Smart Fallback Chain for High Priority / SECURITY_OTP
+                // Chống chịu lỗi Enterprise 2.2: Chuỗi kênh dự phòng thông minh (Fallback) cho mức ưu tiên cao
                 if ((result.Status == DeliveryStatus.FAILED || result.Status == DeliveryStatus.FAILED_DLQ)
                     && (payload.Priority == "HIGH" || payload.EventCode == EventCodes.SECURITY_OTP))
                 {
@@ -562,7 +562,7 @@ namespace ConsumerService.Services
                     }
                 }
 
-                // Atomic update on specific channel element in MongoDB
+                // Cập nhật nguyên tử trạng thái của kênh tương ứng trong MongoDB
                 var filter = Builders<NotificationDocument>.Filter.Eq(x => x.NotificationId, payload.NotificationId);
                 var update = Builders<NotificationDocument>.Update
                     .Set("channels_status.$[elem].status", result.Status.ToString())
@@ -582,7 +582,7 @@ namespace ConsumerService.Services
 
             await Task.WhenAll(tasks);
 
-            // 8. Trace Log Step 4: All Channels Delivered
+            // 8. Nhật ký truy vết Bước 4: Hoàn thành phát tán toàn bộ các kênh
             var totalDuration = (long)(DateTime.UtcNow - payload.CreatedAt).TotalMilliseconds;
             if (totalDuration < 1) totalDuration = 1;
 
@@ -595,7 +595,7 @@ namespace ConsumerService.Services
 
             payload.TraceLogs.Add(step4Log);
 
-            // Save full trace_logs into MongoDB
+            // Lưu trữ toàn bộ nhật ký truy vết TraceLogs vào MongoDB
             var traceFilter = Builders<NotificationDocument>.Filter.Eq(x => x.NotificationId, payload.NotificationId);
             var traceUpdate = Builders<NotificationDocument>.Update.Set(x => x.TraceLogs, payload.TraceLogs);
             await _collection.UpdateOneAsync(traceFilter, traceUpdate, cancellationToken: ct);

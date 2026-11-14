@@ -46,7 +46,7 @@ namespace CommandService.Services
                     _logger.LogError(ex, "Error in OutboxCleanupWorker execution.");
                 }
 
-                // Wait 24 hours before next cleanup run
+                // Chờ 24 giờ trước đợt dọn dẹp dữ liệu kế tiếp
                 await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
             }
         }

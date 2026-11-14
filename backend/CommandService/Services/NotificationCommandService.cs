@@ -67,7 +67,7 @@ namespace CommandService.Services
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            // 1. Check Idempotency Key
+            // 1. Kiểm tra khóa Idempotency Key chống trùng lặp yêu cầu
             if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
             {
                 var existingId = await connection.ExecuteScalarAsync<Guid?>(
@@ -88,7 +88,7 @@ namespace CommandService.Services
             string? phoneNumber = request.PhoneNumber;
             string? webhookUrl = request.WebhookUrl;
 
-            // Resolve preferences if channels not explicitly specified
+            // Lấy cấu hình kênh ưu tiên nếu người dùng không chỉ định trực tiếp
             var prefSql = "SELECT * FROM UserPreferences WHERE UserId = @UserId AND EventCode = @EventCode";
             var pref = await connection.QueryFirstOrDefaultAsync<UserPreference>(prefSql, new
             {
@@ -115,7 +115,7 @@ namespace CommandService.Services
                 }
                 else
                 {
-                    // Default to all 6 channels
+                    // Mặc định phát tán trên cả 6 kênh
                     enabledChannels.AddRange(new[]
                     {
                         ChannelType.IN_APP,
@@ -135,16 +135,16 @@ namespace CommandService.Services
                 if (string.IsNullOrEmpty(webhookUrl) && pref != null) webhookUrl = pref.WebhookUrl;
             }
 
-            // Fallback default Webhook URL to Discord if still empty
+            // Sử dụng Webhook Discord mặc định nếu trường này vẫn để trống
             if (string.IsNullOrEmpty(webhookUrl))
             {
                 webhookUrl = "https://discord.com/api/webhooks/1571076686710185994/2E2S42LpGpTuype1UbZvMucnDriubHkbPIirBj1jLdftalf2gyNwVN5tc4zalz1d1oBD";
             }
 
-            // Retrieve Web Push subscription for user
+            // Lấy thông tin đăng ký Web Push của người dùng từ CSDL
             var webPushSub = await GetWebPushSubscriptionAsync(request.UserId);
 
-            // Compute Priority & TTL (ExpiresAt)
+            // Xác định mức ưu tiên (Priority) và thời gian sống (TTL / ExpiresAt)
             var priority = request.Priority;
             if (string.IsNullOrWhiteSpace(priority))
             {
@@ -155,7 +155,7 @@ namespace CommandService.Services
             DateTime? expiresAt = request.ExpiresAt;
             if (request.SimulateExpiredTtl)
             {
-                // Expired 15 seconds in the past for Chaos Engineering demo!
+                // Thiết lập hết hạn 15 giây trước thời điểm hiện tại cho kịch bản thử nghiệm Chaos Lab
                 expiresAt = DateTime.UtcNow.AddSeconds(-15);
             }
             else if (expiresAt == null && request.EventCode == EventCodes.SECURITY_OTP)
@@ -320,7 +320,7 @@ namespace CommandService.Services
 
             await connection.ExecuteAsync(sql, preference);
 
-            // Invalidate cache immediately
+            // Hủy bộ nhớ đệm (Cache Invalidation) ngay lập tức
             _cache.Remove($"pref_{preference.UserId}");
             _logger.LogInformation("Updated preference for User {UserId}, Event {EventCode}",
                 preference.UserId, preference.EventCode);

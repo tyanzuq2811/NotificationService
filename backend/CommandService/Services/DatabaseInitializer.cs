@@ -88,7 +88,7 @@ namespace CommandService.Services
 
                     await appConn.ExecuteAsync(createTablesSql);
 
-                    // Schema Migrations for Enterprise Features (Executed in separate batches for SQL Server parsing)
+                    // Di chuyển lược đồ CSDL cho các tính năng nâng cao (thực thi theo từng đợt để SQL Server phân tích cú pháp)
                     await appConn.ExecuteAsync(@"
                         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('NotificationEvents') AND name = 'ScheduledAt')
                             ALTER TABLE NotificationEvents ADD ScheduledAt DATETIME2 NULL;
@@ -179,7 +179,7 @@ namespace CommandService.Services
 
                     await appConn.ExecuteAsync(syncTemplatesSql);
 
-                    // Update or Seed UserPreferences with user's real channels
+                    // Cập nhật hoặc khởi tạo cấu hình kênh nhận thông báo người dùng (UserPreferences)
                     var defaultWebhookUrl = "https://discord.com/api/webhooks/1571076686710185994/2E2S42LpGpTuype1UbZvMucnDriubHkbPIirBj1jLdftalf2gyNwVN5tc4zalz1d1oBD";
                     var updatePrefsSql = @"
                         UPDATE UserPreferences 

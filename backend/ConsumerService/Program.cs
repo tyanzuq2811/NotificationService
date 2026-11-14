@@ -7,14 +7,14 @@ Common.EnvLoader.Load();
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Register MemoryCache for Distributed Cache Invalidation
+// Đăng ký bộ nhớ đệm MemoryCache phục vụ vô hiệu hóa cache phân tán
 builder.Services.AddMemoryCache();
 
-// Register MongoDB Client
+// Đăng ký MongoDB Client cho Read Model
 var mongoConnStr = builder.Configuration.GetConnectionString("Mongo") ?? "mongodb://localhost:27017";
 builder.Services.AddSingleton<IMongoClient>(new MongoClient(mongoConnStr));
 
-// Register Channel Strategies (Strategy Pattern - 6 Channels)
+// Đăng ký các chiến lược phát tán thông báo (Strategy Pattern - 6 kênh độc lập)
 builder.Services.AddSingleton<INotificationChannelStrategy, InAppChannelStrategy>();
 builder.Services.AddSingleton<INotificationChannelStrategy, EmailChannelStrategy>();
 builder.Services.AddSingleton<INotificationChannelStrategy, TelegramChannelStrategy>();
@@ -22,13 +22,13 @@ builder.Services.AddSingleton<INotificationChannelStrategy, ZaloChannelStrategy>
 builder.Services.AddSingleton<INotificationChannelStrategy, WebPushChannelStrategy>();
 builder.Services.AddSingleton<INotificationChannelStrategy, WebhookChannelStrategy>();
 
-// Register Factory
+// Đăng ký Factory khởi tạo chiến lược theo kênh
 builder.Services.AddSingleton<ChannelStrategyFactory>();
 
-// Register Dispatcher Service
+// Đăng ký dịch vụ điều phối và chống chịu lỗi (Dispatcher)
 builder.Services.AddSingleton<NotificationDispatcher>();
 
-// Register Background Worker
+// Đăng ký tiến trình chạy ngầm lắng nghe Kafka (Background Worker)
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

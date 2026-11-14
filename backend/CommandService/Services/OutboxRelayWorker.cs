@@ -74,7 +74,7 @@ namespace CommandService.Services
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(stoppingToken);
 
-            // Enterprise Row-level lock hints (UPDLOCK, READPAST, ROWLOCK) to prevent multi-instance race conditions
+            // Khóa mức dòng (UPDLOCK, READPAST, ROWLOCK) theo chuẩn Enterprise nhằm loại bỏ xung đột tranh chấp khi chạy đa tiến trình song song
             var selectSql = @"
                 SELECT TOP 50 * FROM NotificationEvents WITH (UPDLOCK, READPAST, ROWLOCK)
                 WHERE IsPublished = 0 AND (ScheduledAt IS NULL OR ScheduledAt <= GETUTCDATE())
@@ -112,7 +112,7 @@ namespace CommandService.Services
                     }
                     catch
                     {
-                        // Payload might be NotificationReadPayload
+                        // Dữ liệu Payload có thể ở định dạng NotificationReadPayload
                     }
 
                     var kafkaMessage = new Message<string, string>
@@ -128,12 +128,12 @@ namespace CommandService.Services
                         }, _jsonOptions)
                     };
 
-                    // Priority Topic Routing: Critical (OTP/Alert) vs Standard (Order/Balance)
+                    // Phân làn Topic theo mức ưu tiên: Khẩn cấp (OTP/Cảnh báo) hoặc Tiêu chuẩn (Đơn hàng/Biến động số dư)
                     var targetTopic = evt.Priority == "HIGH"
                         ? KafkaTopics.NotificationEventsCritical
                         : KafkaTopics.NotificationEventsStandard;
 
-                    // Publish strictly to the designated priority topic to prevent duplicate consumption
+                    // Phát tán chính xác vào Topic phân làn để tránh việc xử lý trùng lặp
                     var deliveryResult = await _producer!.ProduceAsync(targetTopic, kafkaMessage, stoppingToken);
 
                     if (deliveryResult.Status == PersistenceStatus.Persisted || deliveryResult.Status == PersistenceStatus.PossiblyPersisted)

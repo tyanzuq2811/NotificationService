@@ -89,7 +89,7 @@ namespace QueryService.Controllers
         {
             var items = await _repository.GetDlqNotificationsAsync(limit);
 
-            // Flatten failed channels so each DLQ row has explicit Channel, ErrorMessage, Recipient and FailedAt
+            // Trải phẳng các kênh lỗi để từng dòng trong DLQ thể hiện tường minh Kênh, Thông báo lỗi, Người nhận và Thời điểm lỗi
             var dlqRows = new System.Collections.Generic.List<object>();
             foreach (var doc in items)
             {

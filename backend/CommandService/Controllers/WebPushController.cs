@@ -10,7 +10,7 @@ namespace CommandService.Controllers
     public class WebPushController : ControllerBase
     {
         private readonly INotificationCommandService _commandService;
-        // Standard VAPID Public Key for client browser (Matching VAPID Keypair)
+        // Khóa công khai VAPID chuẩn cho trình duyệt phía Client (khớp với cặp khóa bảo mật VAPID)
         public const string VapidPublicKey = "BNjt2n6zUqd5yS9ORdDmRNxr16jH07LBTxdFjlj8m0eb167uR3uRC-uD_EAUean3NqbOoFTdU-uOzN1FiqQIf5E";
 
         public WebPushController(INotificationCommandService commandService)

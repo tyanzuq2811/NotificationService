@@ -5,7 +5,7 @@ Common.EnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers & Swagger
+// Thêm Controllers và cấu hình tài liệu Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -18,10 +18,10 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Add MemoryCache
+// Đăng ký bộ nhớ đệm MemoryCache
 builder.Services.AddMemoryCache();
 
-// Add CORS for Frontend
+// Thiết lập chính sách CORS cho Frontend Developer Console
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -32,17 +32,17 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Register Domain & Infrastructure Services
+// Đăng ký các dịch vụ tầng Domain và Hạ tầng (Infrastructure)
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<INotificationCommandService, NotificationCommandService>();
 
-// Register Background Workers for Outbox Pattern & Data Retention
+// Đăng ký các tiến trình chạy ngầm (Outbox Relay Worker và Dọn dẹp dữ liệu)
 builder.Services.AddHostedService<OutboxRelayWorker>();
 builder.Services.AddHostedService<OutboxCleanupWorker>();
 
 var app = builder.Build();
 
-// Auto-initialize Database & Seed Data
+// Tự động khởi tạo cấu trúc CSDL và nạp dữ liệu mẫu ban đầu
 using (var scope = app.Services.CreateScope())
 {
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
@@ -63,7 +63,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Command API v1");
-    c.RoutePrefix = string.Empty; // Swagger at root URL
+    c.RoutePrefix = string.Empty; // Mở Swagger trực tiếp tại URL gốc
 });
 
 app.UseCors("AllowAll");

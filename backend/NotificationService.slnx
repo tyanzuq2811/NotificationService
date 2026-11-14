@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CommandService/CommandService.csproj" />
+  <Project Path="Common/Common.csproj" />
+  <Project Path="ConsumerService/ConsumerService.csproj" />
+  <Project Path="QueryService/QueryService.csproj" />
+</Solution>

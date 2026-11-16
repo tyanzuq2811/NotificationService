@@ -141,6 +141,39 @@ namespace CommandService.Services
                 webhookUrl = "https://discord.com/api/webhooks/1571076686710185994/2E2S42LpGpTuype1UbZvMucnDriubHkbPIirBj1jLdftalf2gyNwVN5tc4zalz1d1oBD";
             }
 
+            // Tự động lưu / cập nhật thông tin khách hàng vào cơ sở dữ liệu UserPreferences
+            if (!string.IsNullOrWhiteSpace(request.UserId) && 
+                (!string.IsNullOrWhiteSpace(email) || !string.IsNullOrWhiteSpace(phoneNumber) || telegramChatId.HasValue))
+            {
+                var upsertUserSql = @"
+                    IF EXISTS (SELECT 1 FROM UserPreferences WHERE UserId = @UserId)
+                    BEGIN
+                        UPDATE UserPreferences 
+                        SET Email = COALESCE(@Email, Email),
+                            PhoneNumber = COALESCE(@PhoneNumber, PhoneNumber),
+                            TelegramChatId = COALESCE(@TelegramChatId, TelegramChatId)
+                        WHERE UserId = @UserId;
+                    END
+                    ELSE
+                    BEGIN
+                        INSERT INTO UserPreferences (UserId, EventCode, EnableInApp, EnableEmail, EnableTelegram, EnableZalo, EnableWebPush, EnableWebhook, TelegramChatId, Email, PhoneNumber, WebhookUrl)
+                        VALUES 
+                        (@UserId, 'ORDER_SUCCESS', 1, 1, 1, 1, 1, 1, @TelegramChatId, @Email, @PhoneNumber, @WebhookUrl),
+                        (@UserId, 'SECURITY_OTP', 1, 1, 1, 1, 1, 1, @TelegramChatId, @Email, @PhoneNumber, @WebhookUrl),
+                        (@UserId, 'BALANCE_CHANGE', 1, 1, 1, 1, 1, 1, @TelegramChatId, @Email, @PhoneNumber, @WebhookUrl),
+                        (@UserId, 'SYSTEM_ALERT', 1, 1, 1, 1, 1, 1, @TelegramChatId, @Email, @PhoneNumber, @WebhookUrl);
+                    END";
+
+                await connection.ExecuteAsync(upsertUserSql, new
+                {
+                    UserId = request.UserId,
+                    Email = string.IsNullOrWhiteSpace(email) ? null : email,
+                    PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber,
+                    TelegramChatId = telegramChatId,
+                    WebhookUrl = webhookUrl
+                });
+            }
+
             // Lấy thông tin đăng ký Web Push của người dùng từ CSDL
             var webPushSub = await GetWebPushSubscriptionAsync(request.UserId);
 

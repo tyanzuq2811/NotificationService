@@ -23,9 +23,18 @@ namespace Common
         public bool EnableWebhook { get; set; } = true;
         public long? TelegramChatId { get; set; }
         public string? Email { get; set; }
-        public string? PhoneNumber { get; set; } = "0912889999";
+        public string? PhoneNumber { get; set; } = "0766408268";
         public string? WebhookUrl { get; set; }
         public TimeSpan? QuietHoursStart { get; set; }
         public TimeSpan? QuietHoursEnd { get; set; }
+    }
+
+    public class RecipientProfileDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Email { get; set; }
+        public string? PhoneNumber { get; set; }
+        public long? TelegramChatId { get; set; }
     }
 }

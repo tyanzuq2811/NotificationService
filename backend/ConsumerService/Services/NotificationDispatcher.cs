@@ -640,7 +640,7 @@ namespace ConsumerService.Services
             {
                 ChannelType.EMAIL => payload.Email ?? "ltd28112005@gmail.com",
                 ChannelType.TELEGRAM => payload.TelegramChatId?.ToString() ?? "1547761725",
-                ChannelType.ZALO_ZNS => payload.PhoneNumber ?? "84912889999",
+                ChannelType.ZALO_ZNS => payload.PhoneNumber ?? "84766408268",
                 ChannelType.WEB_PUSH => "Windows_ActionCenter:" + payload.UserId,
                 ChannelType.WEBHOOK => payload.WebhookUrl ?? "Discord Webhook",
                 _ => $"user_{payload.UserId}"

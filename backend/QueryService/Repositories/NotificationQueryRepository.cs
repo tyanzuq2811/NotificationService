@@ -201,6 +201,24 @@ namespace QueryService.Repositories
             return result;
         }
 
+        public async Task<List<RecipientProfileDto>> GetRecipientsAsync()
+        {
+            using var connection = new SqlConnection(_sqlConnStr);
+            var sql = @"
+                SELECT UserId,
+                       CASE WHEN UserId = 'user_demo' THEN N'Lê Tuấn Dũng (user_demo)'
+                            WHEN UserId = 'user_quynh' THEN N'Đinh Trọng Quỳnh (user_quynh)'
+                            ELSE UserId END AS Name,
+                       MAX(Email) AS Email,
+                       MAX(PhoneNumber) AS PhoneNumber,
+                       MAX(TelegramChatId) AS TelegramChatId
+                FROM UserPreferences
+                GROUP BY UserId
+                ORDER BY CASE WHEN UserId = 'user_demo' THEN 0 WHEN UserId = 'user_quynh' THEN 1 ELSE 2 END, UserId";
+            var result = (await connection.QueryAsync<RecipientProfileDto>(sql)).AsList();
+            return result;
+        }
+
         public async Task<List<NotificationEvent>> GetOutboxEventsAsync(int limit)
         {
             using var connection = new SqlConnection(_sqlConnStr);

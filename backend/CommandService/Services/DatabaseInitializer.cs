@@ -184,7 +184,7 @@ namespace CommandService.Services
                     var updatePrefsSql = @"
                         UPDATE UserPreferences 
                         SET WebhookUrl = @WebhookUrl, 
-                            PhoneNumber = '0912889999',
+                            PhoneNumber = '0766408268',
                             EnableZalo = 1,
                             EnableWebPush = 1,
                             EnableWebhook = 1
@@ -193,10 +193,19 @@ namespace CommandService.Services
                         IF NOT EXISTS (SELECT 1 FROM UserPreferences WHERE UserId = 'user_demo')
                         BEGIN
                             INSERT INTO UserPreferences (UserId, EventCode, EnableInApp, EnableEmail, EnableTelegram, EnableZalo, EnableWebPush, EnableWebhook, TelegramChatId, Email, PhoneNumber, WebhookUrl) VALUES
-                            ('user_demo', 'ORDER_SUCCESS', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0912889999', @WebhookUrl),
-                            ('user_demo', 'SECURITY_OTP', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0912889999', @WebhookUrl),
-                            ('user_demo', 'BALANCE_CHANGE', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0912889999', @WebhookUrl),
-                            ('user_demo', 'SYSTEM_ALERT', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0912889999', @WebhookUrl);
+                            ('user_demo', 'ORDER_SUCCESS', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0766408268', @WebhookUrl),
+                            ('user_demo', 'SECURITY_OTP', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0766408268', @WebhookUrl),
+                            ('user_demo', 'BALANCE_CHANGE', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0766408268', @WebhookUrl),
+                            ('user_demo', 'SYSTEM_ALERT', 1, 1, 1, 1, 1, 1, 1547761725, 'ltd28112005@gmail.com', '0766408268', @WebhookUrl);
+                        END;
+
+                        IF NOT EXISTS (SELECT 1 FROM UserPreferences WHERE UserId = 'user_quynh')
+                        BEGIN
+                            INSERT INTO UserPreferences (UserId, EventCode, EnableInApp, EnableEmail, EnableTelegram, EnableZalo, EnableWebPush, EnableWebhook, TelegramChatId, Email, PhoneNumber, WebhookUrl) VALUES
+                            ('user_quynh', 'ORDER_SUCCESS', 1, 1, 1, 1, 1, 1, 1547761725, 'quynh.dt@example.com', '0766408268', @WebhookUrl),
+                            ('user_quynh', 'SECURITY_OTP', 1, 1, 1, 1, 1, 1, 1547761725, 'quynh.dt@example.com', '0766408268', @WebhookUrl),
+                            ('user_quynh', 'BALANCE_CHANGE', 1, 1, 1, 1, 1, 1, 1547761725, 'quynh.dt@example.com', '0766408268', @WebhookUrl),
+                            ('user_quynh', 'SYSTEM_ALERT', 1, 1, 1, 1, 1, 1, 1547761725, 'quynh.dt@example.com', '0766408268', @WebhookUrl);
                         END;";
 
                     await appConn.ExecuteAsync(updatePrefsSql, new { WebhookUrl = defaultWebhookUrl });

@@ -15,6 +15,7 @@ namespace QueryService.Repositories
         Task<object> GetMetricsAsync();
         Task<List<NotificationDocument>> GetDlqNotificationsAsync(int limit);
         Task<List<UserPreference>> GetPreferencesAsync(string userId);
+        Task<List<RecipientProfileDto>> GetRecipientsAsync();
         Task<List<NotificationEvent>> GetOutboxEventsAsync(int limit);
     }
 }

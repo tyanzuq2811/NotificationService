@@ -23,7 +23,7 @@ namespace ConsumerService.Strategies
 
         public async Task<ChannelDeliveryResult> ExecuteAsync(NotificationContext context, CancellationToken ct)
         {
-            var rawPhone = context.PhoneNumber ?? "0912889999";
+            var rawPhone = context.PhoneNumber ?? "0766408268";
             var normalizedPhone = NormalizeVietnamesePhoneNumber(rawPhone);
 
             var useSandbox = bool.Parse(_config["Channels:Zalo:UseSandbox"] ?? "true");
@@ -58,7 +58,7 @@ namespace ConsumerService.Strategies
 
         private static string NormalizeVietnamesePhoneNumber(string phone)
         {
-            if (string.IsNullOrWhiteSpace(phone)) return "84912889999";
+            if (string.IsNullOrWhiteSpace(phone)) return "84766408268";
             var digitsOnly = Regex.Replace(phone, @"[^\d]", "");
 
             if (digitsOnly.StartsWith("0"))

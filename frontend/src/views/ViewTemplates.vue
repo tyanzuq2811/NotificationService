@@ -173,7 +173,7 @@
           <div v-else-if="previewChannel === 'ZALO_ZNS'" class="bg-sky-50 dark:bg-zinc-950 p-4 rounded-xl space-y-3 shadow-inner border border-sky-100 dark:border-zinc-800">
             <div class="text-[10px] text-sky-800 dark:text-sky-400 font-bold flex items-center justify-between">
               <span>Zalo Official Account &bull; OTP & Đơn hàng</span>
-              <span class="font-mono">84912889999</span>
+              <span class="font-mono">84766408268</span>
             </div>
             <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-sky-200 dark:border-zinc-800 shadow-sm space-y-2.5 text-xs">
               <div class="font-bold text-slate-900 dark:text-zinc-100 text-sm">{{ renderedTitle }}</div>

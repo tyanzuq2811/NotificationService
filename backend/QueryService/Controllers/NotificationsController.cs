@@ -152,6 +152,18 @@ namespace QueryService.Controllers
             _repository = repository;
         }
 
+        [HttpGet("recipients")]
+        public async Task<IActionResult> GetRecipients()
+        {
+            var list = await _repository.GetRecipientsAsync();
+            return Ok(new
+            {
+                success = true,
+                message = "Recipients fetched successfully",
+                data = list
+            });
+        }
+
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetPreferences(string userId)
         {

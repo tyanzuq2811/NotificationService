@@ -356,7 +356,7 @@
               <input
                 v-model="pref.phoneNumber"
                 type="text"
-                placeholder="84912889999"
+                placeholder="84766408268"
                 class="w-full text-xs px-3 py-1.5 border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-mono"
               />
             </div>
